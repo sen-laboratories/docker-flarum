@@ -43,8 +43,10 @@ jobs:
             ${{ env.GHCR_SLUG }}
           tags: |
             type=match,pattern=(.*)-r,group=1
-            type=ref,event=pr
+            type=ref,event=pr,tag
             type=edge
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=2.0.0-beta.5,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=Flarum
             org.opencontainers.image.description=Flarum simple forum
