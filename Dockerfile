@@ -61,7 +61,6 @@ RUN mkdir -p /opt/flarum \
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
-     fof/upload:"*" \
      fof/links:"*" \
      fof/gamification:"*" \
      -W \
