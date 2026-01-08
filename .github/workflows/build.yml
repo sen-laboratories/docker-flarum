@@ -19,7 +19,7 @@ on:
   pull_request:
     paths-ignore:
       - '**.md'
-
+  workflow_dispatch:
 env:
   DOCKERHUB_SLUG: senlabs/flarum
   GHCR_SLUG: ghcr.io/sen-laboratories/flarum
