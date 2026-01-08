@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG FLARUM_VERSION=v1.8.10
+ARG FLARUM_VERSION=v2.0.0-beta.5
 ARG ALPINE_VERSION=3.22
 
 FROM crazymax/yasu:latest AS yasu
@@ -55,8 +55,16 @@ ENV S6_BEHAVIOUR_IF_STAGE2_FAILS="2"\
 ARG FLARUM_VERSION
 RUN mkdir -p /opt/flarum \
   && curl -sSL https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
-  && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum --no-install \
-  && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum flarum/core:${FLARUM_VERSION} \
+  # 1. Create the project with beta stability enabled
+  && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum --stability=beta --no-install \
+  # 3. Add core and an opinionated set of extensions for the SEN forum in the same layer
+  && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
+     flarum/core:${FLARUM_VERSION} \
+     fof/oauth:"*" \
+     fof/custom-footer:"*" \
+     justoverclock/custom-header:"*" \
+     gtdxyz/flarum-ext-badges:"*" \
+     -W \
   && composer clear-cache \
   && addgroup -g ${PGID} flarum \
   && adduser -D -h /opt/flarum -u ${PUID} -G flarum -s /bin/sh -D flarum \
