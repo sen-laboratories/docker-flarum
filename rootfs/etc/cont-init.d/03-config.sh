@@ -12,6 +12,10 @@ function fixperms() {
   done
 }
 
+function run_db_cmd() {
+  mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" "$@"
+}
+
 # From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'
@@ -46,7 +50,7 @@ REAL_IP_HEADER=${REAL_IP_HEADER:-X-Forwarded-For}
 LOG_IP_VAR=${LOG_IP_VAR:-remote_addr}
 
 FLARUM_DEBUG=${FLARUM_DEBUG:-false}
-#FLARUM_BASE_URL=${FLARUM_BASE_URL:-http://flarum.docker}
+FLARUM_BASE_URL=${FLARUM_BASE_URL:-http://flarum.docker}
 FLARUM_FORUM_TITLE="${FLARUM_FORUM_TITLE:-Flarum Dockerized}"
 FLARUM_API_PATH="${FLARUM_API_PATH:-api}"
 FLARUM_ADMIN_PATH="${FLARUM_ADMIN_PATH:-admin}"
@@ -54,11 +58,11 @@ FLARUM_POWEREDBY_HEADER="${FLARUM_POWEREDBY_HEADER:-true}"
 FLARUM_REFERRER_POLICY="${FLARUM_REFERRER_POLICY:-same-origin}"
 FLARUM_COOKIE_SAMESITE="${FLARUM_COOKIE_SAMESITE:-lax}"
 
-#DB_HOST=${DB_HOST:-localhost}
+DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-3306}
 DB_NAME=${DB_NAME:-flarum}
 DB_USER=${DB_USER:-flarum}
-#DB_PASSWORD=${DB_PASSWORD:-asupersecretpassword}
+DB_PASSWORD=${DB_PASSWORD:-asupersecretpassword}
 DB_PREFIX=${DB_PREFIX:-flarum_}
 DB_NOPREFIX=${DB_NOPREFIX:-false}
 DB_TIMEOUT=${DB_TIMEOUT:-60}
@@ -126,12 +130,10 @@ if [ -z "$DB_PASSWORD" ]; then
   exit 1
 fi
 
-dbcmd=(mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}")
 echo "Waiting ${DB_TIMEOUT}s for database to be ready..."
 counter=0
 
-# Using "${dbcmd[@]}" preserves quoting of individual elements
-while ! "${dbcmd[@]}" -e "SELECT 1;" >/dev/null 2>&1; do
+while ! run_db_cmd -e "SELECT 1;" >/dev/null 2>&1; do
   sleep 1
   counter=$((counter + 1))
   if [ "${counter}" -ge "${DB_TIMEOUT}" ]; then
@@ -140,16 +142,17 @@ while ! "${dbcmd[@]}" -e "SELECT 1;" >/dev/null 2>&1; do
   fi
 done
 
-echo "Database ready!"
-counttables=$(echo 'SHOW TABLES' | ${dbcmd} "$DB_NAME" | wc -l)
+echo "Database server ready!"
 
 # Enforce no prefix for db
 if [ "$DB_NOPREFIX" = "true" ]; then
   DB_PREFIX=""
 fi
 
-if [ "${counttables}" -eq "0" ]; then
-  echo "First install detected..."
+if run_db_cmd -e "use ${DB_NAME};" >/dev/null 2>&1; then
+  echo "Existing database ${DB_NAME} detected."
+else
+  echo "Database ${DB_NAME} not found, proceeding with fresh install..."
   yasu flarum:flarum cat >/tmp/config.yml <<EOL
 debug: ${FLARUM_DEBUG}
 baseUrl: ${FLARUM_BASE_URL}
