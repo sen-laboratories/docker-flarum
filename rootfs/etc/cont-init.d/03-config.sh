@@ -149,10 +149,11 @@ if [ "$DB_NOPREFIX" = "true" ]; then
   DB_PREFIX=""
 fi
 
-if run_db_cmd -e "use ${DB_NAME};" >/dev/null 2>&1; then
-  echo "Existing database ${DB_NAME} detected."
+echo "Checking for existing Flarum tables..."
+# Check if the 'users' table exists under your prefix
+if run_db_cmd -e "SELECT 1 FROM ${DB_PREFIX}users LIMIT 1;" >/dev/null 2>&1; then
+  echo "Existing Flarum installation detected, continuing normal startup..."
 else
-  echo "Database ${DB_NAME} not found, proceeding with fresh install..."
   yasu flarum:flarum cat >/tmp/config.yml <<EOL
 debug: ${FLARUM_DEBUG}
 baseUrl: ${FLARUM_BASE_URL}
