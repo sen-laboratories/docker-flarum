@@ -125,18 +125,21 @@ if [ -z "$DB_PASSWORD" ]; then
   echo >&2 "ERROR: Either DB_PASSWORD or DB_PASSWORD_FILE must be defined"
   exit 1
 fi
-dbcmd="mariadb -h ${DB_HOST} -P ${DB_PORT} -u "${DB_USER}" "-p${DB_PASSWORD}""
 
+dbcmd=(mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}")
 echo "Waiting ${DB_TIMEOUT}s for database to be ready..."
-counter=1
-while ! ${dbcmd} -e "show databases;" >/dev/null 2>&1; do
+counter=0
+
+# Using "${dbcmd[@]}" preserves quoting of individual elements
+while ! "${dbcmd[@]}" -e "SELECT 1;" >/dev/null 2>&1; do
   sleep 1
   counter=$((counter + 1))
-  if [ ${counter} -gt ${DB_TIMEOUT} ]; then
-    echo >&2 "ERROR: Failed to connect to database on $DB_HOST"
+  if [ "${counter}" -ge "${DB_TIMEOUT}" ]; then
+    echo >&2 "ERROR: Failed to connect to database on ${DB_HOST}"
     exit 1
   fi
 done
+
 echo "Database ready!"
 counttables=$(echo 'SHOW TABLES' | ${dbcmd} "$DB_NAME" | wc -l)
 
