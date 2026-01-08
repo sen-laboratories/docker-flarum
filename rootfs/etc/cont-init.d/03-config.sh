@@ -154,6 +154,8 @@ echo "Checking for existing Flarum tables..."
 if run_db_cmd -e "SELECT 1 FROM ${DB_PREFIX}users LIMIT 1;" >/dev/null 2>&1; then
   echo "Existing Flarum installation detected, continuing normal startup..."
 else
+  echo "Ensuring database ${DB_NAME} exists..."
+  run_db_cmd -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
   yasu flarum:flarum cat >/tmp/config.yml <<EOL
 debug: ${FLARUM_DEBUG}
 baseUrl: ${FLARUM_BASE_URL}
