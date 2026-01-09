@@ -57,10 +57,14 @@ RUN mkdir -p /opt/flarum \
   && curl -sSL https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
   # 1. Create the project with beta stability enabled
   && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum --stability=beta --no-install \
+  # 2. add SEN Labs repository for the Authentik plugin
+  && COMPOSER_CACHE_DIR="/tmp" composer repositories.sen-labs vcs https://github.com/sen-laboratories/flarum-oauth-authentik \
   # 3. Add core and an opinionated set of extensions for the SEN forum in the same layer
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
+     sen-labs/oauth-authentik:* \
+     fof/follow-tags:^2.0.0-beta.6 \
      fof/links:"*" \
      fof/gamification:"*" \
      -W \
