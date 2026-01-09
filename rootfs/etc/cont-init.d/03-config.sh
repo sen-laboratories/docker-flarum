@@ -13,7 +13,7 @@ function fixperms() {
 }
 
 function run_db_cmd() {
-  mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" "$@"
+  mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -N -s -e "$@"
 }
 
 # From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
@@ -132,17 +132,24 @@ fi
 
 echo "Waiting ${DB_TIMEOUT}s for database to be ready..."
 counter=0
+db_status = 1
 
-while ! run_db_cmd -e "SELECT 1;" >/dev/null 2>&1; do
+while db_status; do
+  RAW_SERVER_VER=run_db_cmd -e "SELECT VERSION();" >/dev/null 2>&1
+  
+  db_status=$?
   sleep 1
   counter=$((counter + 1))
+  
   if [ "${counter}" -ge "${DB_TIMEOUT}" ]; then
     echo >&2 "ERROR: Failed to connect to database on ${DB_HOST}"
     exit 1
   fi
 done
 
-echo "Database server ready!"
+# Extract only the numeric part before the first dash (e.g., 10.11.8)
+SERVER_VER=$(echo "$RAW_SERVER_VER" | cut -d'-' -f1)
+echo "Connected to MariaDB Server $SERVER_VER"
 
 # Enforce no prefix for db
 if [ "$DB_NOPREFIX" = "true" ]; then
@@ -150,10 +157,27 @@ if [ "$DB_NOPREFIX" = "true" ]; then
 fi
 
 echo "Checking for existing Flarum tables..."
-# Check if the 'users' table exists under your prefix
-if run_db_cmd -e "SELECT 1 FROM ${DB_PREFIX}users LIMIT 1;" >/dev/null 2>&1; then
-  echo "Existing Flarum installation detected, continuing normal startup..."
+# We use backticks around `key` because it is a reserved word in MariaDB
+VERSION=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -N -s -e "SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;") # 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "DB table check failed!"
+    exit 1
+fi
+
+if [ -n "$VERSION" ]; then
+    case "$VERSION" in
+        2.*)
+            echo "--------------------------------------------------------------------------------"
+            echo "Found existing Flarum installation with version $VERSION. Skipping installation."
+            echo "--------------------------------------------------------------------------------"
+            ;;
+        *)
+            echo "Legacy Flarum found ($VERSION). Running migrations..."
+            php flarum migrate
+            ;;
+    esac
 else
+    echo "No Flarum installation found in database. Initializing fresh installation..."
   echo "Ensuring database ${DB_NAME} exists..."
   run_db_cmd -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
   yasu flarum:flarum cat >/tmp/config.yml <<EOL
