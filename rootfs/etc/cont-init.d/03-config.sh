@@ -134,10 +134,13 @@ echo "Waiting ${DB_TIMEOUT}s for database to be ready..."
 counter=0
 db_status = 1
 
-while db_status; do
-  RAW_SERVER_VER=run_db_cmd -e "SELECT VERSION();" >/dev/null 2>&1
+while [ $db_status -ne 0 ]; do
+  # Use $(...) to capture output. Note: we need the output here, so don't redirect it to /dev/null!
+  RAW_SERVER_VER=$(run_db_cmd "SELECT VERSION();" 2>/dev/null)
   
   db_status=$?
+  [ $db_status -eq 0 ] && break
+  
   sleep 1
   counter=$((counter + 1))
   
@@ -158,7 +161,7 @@ fi
 
 echo "Checking for existing Flarum tables..."
 # We use backticks around `key` because it is a reserved word in MariaDB
-VERSION=$(mariadb -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -N -s -e "SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;") # 2>/dev/null)
+VERSION=$(run_db_cmd "SELECT value FROM ${DB_PREFIX}settings WHERE 'key' = 'version' LIMIT 1;" 2>/dev/null)
 if [ $? -ne 0 ]; then
     echo "DB table check failed!"
     exit 1
