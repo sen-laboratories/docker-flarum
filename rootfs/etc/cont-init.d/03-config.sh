@@ -12,8 +12,15 @@ function fixperms() {
   done
 }
 
+# run internal DB command
 function run_db_cmd() {
   mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -N -s -e "$@"
+}
+
+# execute statement on flarum DB
+function exec_db_stmt() {
+  # Add the ${DB_NAME} at the end so it selects the database first
+  mariadb -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -N -s "${DB_NAME}" -e "$@"
 }
 
 # From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
@@ -164,7 +171,7 @@ echo "Checking for existing Flarum tables..."
 
 # We use backticks around `key` because it is a reserved word in MariaDB
 SQL_QUERY="SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;"
-VERSION=$(run_db_cmd $DB_NAME "$SQL_QUERY")
+VERSION=$(exec_db_stmt "$SQL_QUERY")
 
 if [ $? -ne 0 ]; then
     echo "Could not query flarum version in DB!"
