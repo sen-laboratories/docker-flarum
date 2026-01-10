@@ -132,27 +132,28 @@ fi
 
 echo "Waiting ${DB_TIMEOUT}s for database to be ready..."
 counter=0
-db_status = 1
+db_status=1
 
-while [ $db_status -ne 0 ]; do
-  # Use $(...) to capture output. Note: we need the output here, so don't redirect it to /dev/null!
-  RAW_SERVER_VER=$(run_db_cmd "SELECT VERSION();" 2>/dev/null)
-  
-  db_status=$?
-  [ $db_status -eq 0 ] && break
-  
-  sleep 1
-  counter=$((counter + 1))
-  
-  if [ "${counter}" -ge "${DB_TIMEOUT}" ]; then
-    echo >&2 "ERROR: Failed to connect to database on ${DB_HOST}"
-    exit 1
-  fi
+while [ "$db_status" -ne 0 ]; do
+    # Capture version to check connectivity
+    RAW_SERVER_VER=$(run_db_cmd "SELECT VERSION();" 2>/dev/null)
+    db_status=$?
+    
+    if [ "$db_status" -eq 0 ]; then
+        break
+    fi
+    
+    sleep 1
+    counter=$((counter + 1))
+    
+    if [ "$counter" -ge "${DB_TIMEOUT}" ]; then
+        echo >&2 "ERROR: Failed to connect to database on ${DB_HOST} after ${DB_TIMEOUT}s"
+        exit 1
+    fi
 done
 
-# Extract only the numeric part before the first dash (e.g., 10.11.8)
 SERVER_VER=$(echo "$RAW_SERVER_VER" | cut -d'-' -f1)
-echo "Connected to MariaDB Server $SERVER_VER"
+echo "Connected to MariaDB Server: $SERVER_VER"
 
 # Enforce no prefix for db
 if [ "$DB_NOPREFIX" = "true" ]; then
@@ -161,7 +162,7 @@ fi
 
 echo "Checking for existing Flarum tables..."
 # We use backticks around `key` because it is a reserved word in MariaDB
-VERSION=$(run_db_cmd "SELECT value FROM ${DB_PREFIX}settings WHERE `key` = 'version' LIMIT 1;" 2>/dev/null)
+VERSION=$(run_db_cmd "SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;" 2>/dev/null)
 if [ $? -ne 0 ]; then
     echo "Could not query flarum version in DB!"
     exit 1
