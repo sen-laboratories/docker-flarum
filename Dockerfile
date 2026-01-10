@@ -60,7 +60,7 @@ RUN mkdir -p /opt/flarum \
   # 1. Create the project with beta stability enabled
   && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum --stability=beta --no-install \
   # 2. add SEN Labs repository for the Authentik plugin
-  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs vcs https://github.com/sen-laboratories/flarum-oauth-authentik.git
+  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs vcs https://github.com/sen-laboratories/flarum-oauth-authentik.git \
   # 3. Add core and an opinionated set of extensions for the SEN forum in the same layer
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
