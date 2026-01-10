@@ -10,10 +10,12 @@ COPY --from=yasu / /
 RUN apk --update --no-cache add \
     bash \
     curl \
+    git \
     libgd \
     mysql-client \
     mariadb-connector-c \
     nginx \
+    openssh-client \
     php83 \
     php83-cli \
     php83-ctype \
