@@ -164,7 +164,7 @@ echo "Checking for existing Flarum tables..."
 
 # We use backticks around `key` because it is a reserved word in MariaDB
 SQL_QUERY="SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;"
-VERSION=$(run_db_cmd "$SQL_QUERY")
+VERSION=$(run_db_cmd $DB_NAME "$SQL_QUERY")
 
 if [ $? -ne 0 ]; then
     # Debug: If it fails, let's see why by running it without 2>/dev/null once
