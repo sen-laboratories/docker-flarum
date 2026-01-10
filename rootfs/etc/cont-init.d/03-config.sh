@@ -161,9 +161,15 @@ if [ "$DB_NOPREFIX" = "true" ]; then
 fi
 
 echo "Checking for existing Flarum tables..."
+
 # We use backticks around `key` because it is a reserved word in MariaDB
-VERSION=$(run_db_cmd "SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;" 2>/dev/null)
+SQL_QUERY="SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;"
+VERSION=$(run_db_cmd "$SQL_QUERY")
+
 if [ $? -ne 0 ]; then
+    # Debug: If it fails, let's see why by running it without 2>/dev/null once
+    echo "Query failed. Retrying with visible errors..."
+    run_db_cmd "$SQL_QUERY"
     echo "Could not query flarum version in DB!"
     exit 1
 fi
