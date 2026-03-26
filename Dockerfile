@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG FLARUM_VERSION=v2.0.0-beta.5
+ARG FLARUM_VERSION=v2.0.0-beta.8
 ARG ALPINE_VERSION=3.22
 
 FROM crazymax/yasu:latest AS yasu
@@ -16,37 +16,39 @@ RUN apk --update --no-cache add \
     mariadb-connector-c \
     nginx \
     openssh-client \
-    php83 \
-    php83-cli \
-    php83-ctype \
-    php83-curl \
-    php83-dom \
-    php83-exif \
-    php83-fileinfo \
-    php83-fpm \
-    php83-gd \
-    php83-gmp \
-    php83-iconv \
-    php83-intl \
-    php83-json \
-    php83-mbstring \
-    php83-opcache \
-    php83-openssl \
-    php83-pdo \
-    php83-pdo_mysql \
-    php83-pecl-uuid \
-    php83-phar \
-    php83-session \
-    php83-simplexml \
-    php83-sodium \
-    php83-tokenizer \
-    php83-xml \
-    php83-xmlwriter \
-    php83-zip \
-    php83-zlib \
+    php84 \
+    php84-cli \
+    php84-ctype \
+    php84-curl \
+    php84-dom \
+    php84-exif \
+    php84-fileinfo \
+    php84-fpm \
+    php84-gd \
+    php84-gmp \
+    php84-iconv \
+    php84-intl \
+    php84-mbstring \
+    php84-opcache \
+    php84-openssl \
+    php84-pdo \
+    php84-pdo_mysql \
+    php84-pecl-uuid \
+    php84-phar \
+    php84-session \
+    php84-simplexml \
+    php84-sodium \
+    php84-tokenizer \
+    php84-xml \
+    php84-xmlwriter \
+    php84-zip \
+    php84-zlib \
     shadow \
     tar \
     tzdata \
+  # php84-json is gone — JSON is always compiled into PHP 8.x core.
+  # Symlink php84 → php so composer and flarum CLI work without path games
+  && ln -sf /usr/bin/php84 /usr/bin/php \
   && rm -rf /tmp/* /var/www/*
 
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS="2"\
@@ -57,16 +59,13 @@ ENV S6_BEHAVIOUR_IF_STAGE2_FAILS="2"\
 ARG FLARUM_VERSION
 RUN mkdir -p /opt/flarum \
   && curl -sSL https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
-  # 1. Create the project with beta stability enabled
-  && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum --stability=beta --no-install \
-  # 2. add SEN Labs repository for the Authentik plugin
-  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs vcs https://github.com/sen-laboratories/flarum-oauth-authentik.git \
-  # 3. Add core and an opinionated set of extensions for the SEN forum in the same layer
-  && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum --no-interaction --prefer-dist \
+  && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum \
+       --stability=beta --no-install \
+  && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
+       --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
-     sen-labs/oauth-authentik:"*" \
-     fof/follow-tags:^2.0.0-beta.6 \
+     fof/follow-tags:"*" \
      fof/links:"*" \
      fof/gamification:"*" \
      -W \
