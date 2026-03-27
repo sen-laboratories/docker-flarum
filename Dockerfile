@@ -62,7 +62,7 @@ RUN mkdir -p /opt/flarum \
        --stability=beta --no-install \
   # 2. add SEN Labs repository for the Authelia plugin
   && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs \
-     vcs https://github.com/sen-laboratories/flarum-oauth-authelia.git \
+     vcs https://codeberg.org/senlabs/flarum-oauth-authelia.git \
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
