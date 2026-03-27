@@ -46,7 +46,6 @@ RUN apk --update --no-cache add \
     shadow \
     tar \
     tzdata \
-  # php84-json is gone — JSON is always compiled into PHP 8.x core.
   # Symlink php84 → php so composer and flarum CLI work without path games
   && ln -sf /usr/bin/php84 /usr/bin/php \
   && rm -rf /tmp/* /var/www/*
@@ -61,10 +60,14 @@ RUN mkdir -p /opt/flarum \
   && curl -sSL https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
   && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum \
        --stability=beta --no-install \
+  # 2. add SEN Labs repository for the Authelia plugin
+  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs \
+     vcs https://github.com/sen-laboratories/flarum-oauth-authelia.git \
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
+     sen-labs/oauth-authelia:"*" \
      fof/follow-tags:"*" \
      fof/links:"*" \
      fof/gamification:"*" \
