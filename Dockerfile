@@ -67,7 +67,7 @@ RUN mkdir -p /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
-     sen-labs/oauth-authelia:"*" \
+     sen-labs/oauth-authelia:"dev-main" \
      fof/follow-tags:"*" \
      fof/links:"*" \
      fof/gamification:"*" \
