@@ -117,7 +117,7 @@ ln -sf /data/assets /opt/flarum/public/assets
 ln -sf /data/extensions /opt/flarum/extensions
 ln -sf /data/storage /opt/flarum/storage
 chown -h flarum:flarum /opt/flarum/extensions /opt/flarum/public/assets /opt/flarum/storage
-fixperms /data/assets /data/extensions /data/storage /opt/flarum/vendor
+fixperms /data/assets /data/extensions /data/storage
 
 echo "Checking parameters..."
 if [ -z "$FLARUM_BASE_URL" ]; then
@@ -171,11 +171,13 @@ echo "Checking for existing Flarum tables..."
 
 # We use backticks around `key` because it is a reserved word in MariaDB
 SQL_QUERY="SELECT value FROM ${DB_PREFIX}settings WHERE \`key\` = 'version' LIMIT 1;"
-VERSION=$(exec_db_stmt "$SQL_QUERY")
+VERSION=$(exec_db_stmt "$SQL_QUERY" 2>/dev/null)
+DB_QUERY_STATUS=$?
 
-if [ $? -ne 0 ]; then
-    echo "Could not query flarum version in DB!"
-    exit 1
+if [ $DB_QUERY_STATUS -ne 0 ]; then
+    # Table doesn't exist yet — this is a fresh install
+    echo "No existing Flarum tables found (fresh install)."
+    VERSION=""
 fi
 
 if [ -n "$VERSION" ]; then
