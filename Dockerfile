@@ -67,9 +67,10 @@ RUN mkdir -p /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
      fof/oauth:"*" \
-     sen-labs/oauth-authelia:"dev-main" \
+     sen-labs/oauth-authelia:"*" \
      fof/follow-tags:"*" \
      fof/links:"*" \
+     fof/direct-links:"*" \
      fof/gamification:"*" \
      -W \
   && composer clear-cache \
