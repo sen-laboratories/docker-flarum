@@ -70,7 +70,6 @@ RUN mkdir -p /opt/flarum \
      sen-labs/oauth-authelia:"*" \
      fof/follow-tags:"*" \
      fof/links:"*" \
-     fof/direct-links:"*" \
      fof/gamification:"*" \
      -W \
   && composer clear-cache \
