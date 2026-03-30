@@ -72,6 +72,8 @@ RUN mkdir -p /opt/flarum \
      fof/links:"*" \
      fof/gamification:"*" \
      -W \
+  ## check our extension so it does not break the container
+  && find /opt/flarum/vendor/sen-labs/ -name '*.php' -exec php -l {} + \
   && composer clear-cache \
   && addgroup -g ${PGID} flarum \
   && adduser -D -h /opt/flarum -u ${PUID} -G flarum -s /bin/sh -D flarum \
