@@ -17,6 +17,16 @@ php-fpm85 -F
 EOL
 chmod +x /etc/services.d/php-fpm/run
 
+if [ "${FLARUM_SCHEDULER:-true}" = "true" ]; then
+  mkdir -p /etc/services.d/scheduler
+  cat > /etc/services.d/scheduler/run <<EOL
+#!/usr/bin/execlineb -P
+s6-setuidgid ${PUID}:${PGID}
+/usr/local/bin/flarum-scheduler
+EOL
+  chmod +x /etc/services.d/scheduler/run
+fi
+
 if [ "${FLARUM_REALTIME:-false}" = "true" ]; then
   mkdir -p /etc/services.d/realtime
   cat > /etc/services.d/realtime/run <<EOL

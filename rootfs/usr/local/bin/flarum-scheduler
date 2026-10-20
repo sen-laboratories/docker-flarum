@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs Flarum's scheduled tasks once a minute (php flarum schedule:run), supervised by s6 (see 04-svc-main.sh).
+# Flarum 2 needs this for GDPR erasure/export handling, the abandoned-extensions sync and other recurring jobs.
+cd /opt/flarum || exit 1
+
+while true; do
+  # sleep until the start of the next minute, as cron would
+  sleep $((60 - $(date +%S | sed 's/^0*//;s/^$/0/')))
+  out=$(php flarum schedule:run 2>&1) || echo "schedule:run failed: $out"
+done

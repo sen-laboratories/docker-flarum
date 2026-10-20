@@ -119,6 +119,9 @@ linux/arm64
 * `FLARUM_POWEREDBY_HEADER`: Set Flarum's `X-Powered-By` header (default `true`)
 * `FLARUM_REFERRER_POLICY`: Referrer policy (default `same-origin`)
 * `FLARUM_COOKIE_SAMESITE`: Set `SameSite` attribute of `Set-Cookie` (default `lax`)
+* `FLARUM_SCHEDULER`: Run Flarum's scheduled tasks (`php flarum schedule:run`) every minute as s6 service. Flarum 2 needs
+  them for GDPR erasure handling, the abandoned-extensions sync and other recurring jobs. Set to `false` if you run
+  your own cron job (default `true`)
 
 ### Realtime
 
