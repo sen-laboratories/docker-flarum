@@ -107,10 +107,22 @@ linux/arm64
 * `FLARUM_REFERRER_POLICY`: Referrer policy (default `same-origin`)
 * `FLARUM_COOKIE_SAMESITE`: Set `SameSite` attribute of `Set-Cookie` (default `lax`)
 
+### Realtime
+
+The `flarum/realtime` extension needs a websocket daemon. With `FLARUM_REALTIME=true` it is started as an s6 service
+(it waits until the extension is enabled and restarts itself whenever an extension is toggled) and nginx proxies
+the browser's websocket route `/app/<key>` to it, so no extra port has to be published. Enable the extension
+(`php flarum extension:enable flarum-realtime`); reverse proxies in front of the container must pass websocket upgrades.
+
+* `FLARUM_REALTIME`: Run the Realtime websocket daemon (default `false`)
+* `FLARUM_REALTIME_PORT`: Port the daemon listens on, localhost only (default `6001`)
+* `FLARUM_REALTIME_JS_PORT`: Port the browser connects to (default: port of `FLARUM_BASE_URL`, `443` for https, `80` for http)
+
 ### Database
 
 * `DB_HOST`: MySQL database hostname / IP address **required**
 * `DB_PORT`: MySQL database port (default `3306`)
+* `DB_DRIVER`: Flarum database driver, `mysql` or `mariadb` (default: detected from the server version)
 * `DB_NAME`: MySQL database name (default `flarum`)
 * `DB_USER`: MySQL user (default `flarum`)
 * `DB_PASSWORD`: MySQL password

@@ -64,9 +64,13 @@ FLARUM_ADMIN_PATH="${FLARUM_ADMIN_PATH:-admin}"
 FLARUM_POWEREDBY_HEADER="${FLARUM_POWEREDBY_HEADER:-true}"
 FLARUM_REFERRER_POLICY="${FLARUM_REFERRER_POLICY:-same-origin}"
 FLARUM_COOKIE_SAMESITE="${FLARUM_COOKIE_SAMESITE:-lax}"
+FLARUM_REALTIME="${FLARUM_REALTIME:-false}"
+FLARUM_REALTIME_PORT="${FLARUM_REALTIME_PORT:-6001}"
+FLARUM_REALTIME_JS_PORT="${FLARUM_REALTIME_JS_PORT:-}"
 
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-3306}
+DB_DRIVER=${DB_DRIVER:-}
 DB_NAME=${DB_NAME:-flarum}
 DB_USER=${DB_USER:-flarum}
 DB_PASSWORD=${DB_PASSWORD:-asupersecretpassword}
@@ -84,16 +88,16 @@ echo "Setting PHP-FPM configuration..."
 sed -e "s/@MEMORY_LIMIT@/$MEMORY_LIMIT/g" \
   -e "s/@UPLOAD_MAX_SIZE@/$UPLOAD_MAX_SIZE/g" \
   -e "s/@CLEAR_ENV@/$CLEAR_ENV/g" \
-  /tpls/etc/php84/php-fpm.d/www.conf >/etc/php84/php-fpm.d/www.conf
+  /tpls/etc/php85/php-fpm.d/www.conf >/etc/php85/php-fpm.d/www.conf
 
 echo "Setting PHP INI configuration..."
-sed -i "s|memory_limit.*|memory_limit = ${MEMORY_LIMIT}|g" /etc/php84/php.ini
-sed -i "s|;date\.timezone.*|date\.timezone = ${TZ}|g" /etc/php84/php.ini
+sed -i "s|memory_limit.*|memory_limit = ${MEMORY_LIMIT}|g" /etc/php85/php.ini
+sed -i "s|;date\.timezone.*|date\.timezone = ${TZ}|g" /etc/php85/php.ini
 
 # OpCache
 echo "Setting OpCache configuration..."
 sed -e "s/@OPCACHE_MEM_SIZE@/$OPCACHE_MEM_SIZE/g" \
-  /tpls/etc/php84/conf.d/opcache.ini >/etc/php84/conf.d/opcache.ini
+  /tpls/etc/php85/conf.d/opcache.ini >/etc/php85/conf.d/opcache.ini
 
 # Nginx
 echo "Setting Nginx configuration..."
@@ -105,6 +109,28 @@ sed -e "s#@UPLOAD_MAX_SIZE@#$UPLOAD_MAX_SIZE#g" \
 
 if [ "$LISTEN_IPV6" != "true" ]; then
   sed -e '/listen \[::\]:/d' -i /etc/nginx/nginx.conf
+fi
+
+# Realtime websocket: proxy the daemon (listening on localhost) through nginx, so it is reachable on the forum's own port.
+# Only the browser's websocket route /app/<key> is exposed; the signed HTTP API under /apps/ is used by PHP on localhost
+# (the .nginx.conf shipped with the extension proxies /apps, which would not carry the browser connection).
+echo "Setting Realtime configuration..."
+if [ "$FLARUM_REALTIME" = "true" ]; then
+  cat >/etc/nginx/realtime.conf <<EOL
+location ^~ /app/ {
+    proxy_pass http://127.0.0.1:${FLARUM_REALTIME_PORT};
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_read_timeout 60;
+    proxy_connect_timeout 60;
+    proxy_redirect off;
+    proxy_cache_bypass \$http_upgrade;
+}
+EOL
+else
+  : >/etc/nginx/realtime.conf
 fi
 
 echo "Initializing files and folders..."
@@ -160,7 +186,23 @@ while [ "$db_status" -ne 0 ]; do
 done
 
 SERVER_VER=$(echo "$RAW_SERVER_VER" | cut -d'-' -f1)
-echo "Connected to MariaDB Server: $SERVER_VER"
+
+# Flarum 2 treats MySQL and MariaDB as separate drivers and reports a mismatch with the server,
+# so detect it from the server version unless DB_DRIVER is set (mysql or mariadb).
+if [ -z "$DB_DRIVER" ]; then
+  case "$RAW_SERVER_VER" in
+    *MariaDB*) DB_DRIVER=mariadb ;;
+    *) DB_DRIVER=mysql ;;
+  esac
+fi
+case "$DB_DRIVER" in
+  mysql|mariadb) ;;
+  *)
+    echo >&2 "ERROR: DB_DRIVER must be mysql or mariadb, got '${DB_DRIVER}'"
+    exit 1
+    ;;
+esac
+echo "Connected to ${DB_DRIVER} server: $SERVER_VER"
 
 # Enforce no prefix for db
 if [ "$DB_NOPREFIX" = "true" ]; then
@@ -195,12 +237,12 @@ if [ -n "$VERSION" ]; then
 else
     echo "No Flarum installation found in database. Initializing fresh installation..."
   echo "Ensuring database ${DB_NAME} exists..."
-  run_db_cmd -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  run_db_cmd "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
   yasu flarum:flarum cat >/tmp/config.yml <<EOL
 debug: ${FLARUM_DEBUG}
 baseUrl: ${FLARUM_BASE_URL}
 databaseConfiguration:
-  driver: mysql
+  driver: ${DB_DRIVER}
   host: ${DB_HOST}
   database: ${DB_NAME}
   username: ${DB_USER}
@@ -223,13 +265,35 @@ EOL
   echo ">>"
 fi
 
+# The browser connects to the websocket on the port of the forum URL (through nginx or the reverse proxy in front of it)
+WEBSOCKET_CONFIG=""
+if [ "$FLARUM_REALTIME" = "true" ]; then
+  if [ -z "$FLARUM_REALTIME_JS_PORT" ]; then
+    url_host="${FLARUM_BASE_URL#*://}"
+    url_host="${url_host%%/*}"
+    case "$url_host" in
+      *:*) FLARUM_REALTIME_JS_PORT="${url_host##*:}" ;;
+      *) case "$FLARUM_BASE_URL" in https://*) FLARUM_REALTIME_JS_PORT=443 ;; *) FLARUM_REALTIME_JS_PORT=80 ;; esac ;;
+    esac
+  fi
+  WEBSOCKET_CONFIG="  'websocket' =>
+  array (
+    'server-host' => '127.0.0.1',
+    'server-port' => ${FLARUM_REALTIME_PORT},
+    'php-client-host' => '127.0.0.1',
+    'php-client-port' => ${FLARUM_REALTIME_PORT},
+    'php-client-secure' => false,
+    'js-client-port' => ${FLARUM_REALTIME_JS_PORT},
+  ),"
+fi
+
 echo "Creating Flarum config file..."
 yasu flarum:flarum cat >/opt/flarum/config.php <<EOL
 <?php return array (
   'debug' => ${FLARUM_DEBUG},
   'database' =>
   array (
-    'driver' => 'mysql',
+    'driver' => '${DB_DRIVER}',
     'host' => '${DB_HOST}',
     'port' => ${DB_PORT},
     'database' => '${DB_NAME}',
@@ -257,6 +321,7 @@ yasu flarum:flarum cat >/opt/flarum/config.php <<EOL
   array (
     'samesite' => '${FLARUM_COOKIE_SAMESITE}',
   ),
+${WEBSOCKET_CONFIG}
 );
 EOL
 

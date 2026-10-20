@@ -1,0 +1,12 @@
+#!/bin/sh
+# Supervised by s6 (see 04-svc-main.sh). The realtime:serve command only exists while the Realtime extension
+# is enabled, and the daemon halts itself within 10s whenever an extension is toggled, so wait and let s6 restart us.
+cd /opt/flarum || exit 1
+
+if ! php flarum list --raw 2>/dev/null | grep -q '^realtime:serve'; then
+  echo "Realtime extension is not enabled, checking again in 30s"
+  sleep 30
+  exit 0
+fi
+
+exec php flarum realtime:serve
