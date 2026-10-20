@@ -63,7 +63,7 @@ RUN mkdir -p /opt/flarum \
   # (stability stays "stable": fof/links and fof/gamification have no stable 2.0 release yet, so only they are
   # allowed as rc/beta with @rc/@beta below. Drop the flags once they are released.)
   && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs \
-     vcs https://codeberg.org/senlabs/flarum-oauth-authelia.git \
+     vcs https://github.com/sen-laboratories/flarum-oauth-authelia.git \
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \

@@ -15,7 +15,7 @@ which is still on Flarum 1.8. It differs in these points:
 | | |
 |---|---|
 | Flarum | 2.0.x (`v2.0.2`), with the extensions of the 2.0 skeleton (approval, bbcode, deck, emoji, flags, gdpr, likes, lock, markdown, mentions, messages, nicknames, realtime, statistics, sticky, subscriptions, suspend, tags, ...) |
-| Extra extensions | [`fof/oauth`](https://github.com/FriendsOfFlarum/oauth), [`sen-labs/oauth-authelia`](https://github.com/sen-laboratories/flarum-oauth-authelia) (Authelia OIDC login), `fof/follow-tags`, `fof/links`, `fof/gamification` |
+| Extra extensions | [`fof/oauth`](https://github.com/FriendsOfFlarum/oauth), [`sen-labs/oauth-authelia`](https://github.com/sen-laboratories/flarum-oauth-authelia) v1.0.2 (Authelia OIDC login), `fof/follow-tags`, `fof/links`, `fof/gamification` |
 | Runtime | Alpine 3.24, PHP 8.5, nginx, s6-overlay |
 | Database | MariaDB (recommended 11.8+, tested with 10.11, 11.8 and 13.0) or MySQL; the driver is detected, see `DB_DRIVER` |
 | Realtime | optional websocket daemon as s6 service, see [Realtime](#realtime) |
