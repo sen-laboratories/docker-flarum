@@ -1,18 +1,26 @@
-<p align="center"><a href="https://github.com/crazy-max/docker-flarum" target="_blank"><img height="128" src="https://raw.githubusercontent.com/crazy-max/docker-flarum/master/.github/docker-flarum.jpg"></a></p>
-
 <p align="center">
-  <a href="https://hub.docker.com/r/crazymax/flarum/tags?page=1&ordering=last_updated"><img src="https://img.shields.io/github/v/tag/crazy-max/docker-flarum?label=version&style=flat-square" alt="Latest Version"></a>
-  <a href="https://github.com/crazy-max/docker-flarum/actions?workflow=build"><img src="https://img.shields.io/github/actions/workflow/status/crazy-max/docker-flarum/build.yml?branch=master&label=build&logo=github&style=flat-square" alt="Build Status"></a>
-  <a href="https://hub.docker.com/r/crazymax/flarum/"><img src="https://img.shields.io/docker/stars/crazymax/flarum.svg?style=flat-square&logo=docker" alt="Docker Stars"></a>
-  <a href="https://hub.docker.com/r/crazymax/flarum/"><img src="https://img.shields.io/docker/pulls/crazymax/flarum.svg?style=flat-square&logo=docker" alt="Docker Pulls"></a>
-  <br /><a href="https://github.com/sponsors/crazy-max"><img src="https://img.shields.io/badge/sponsor-crazy--max-181717.svg?logo=github&style=flat-square" alt="Become a sponsor"></a>
-  <a href="https://www.paypal.me/crazyws"><img src="https://img.shields.io/badge/donate-paypal-00457c.svg?logo=paypal&style=flat-square" alt="Donate Paypal"></a>
+  <a href="https://hub.docker.com/r/senlabs/flarum/tags?page=1&ordering=last_updated"><img src="https://img.shields.io/github/v/tag/sen-laboratories/docker-flarum?label=version&style=flat-square" alt="Latest Version"></a>
+  <a href="https://github.com/sen-laboratories/docker-flarum/actions?workflow=build"><img src="https://img.shields.io/github/actions/workflow/status/sen-laboratories/docker-flarum/build.yml?branch=main&label=build&logo=github&style=flat-square" alt="Build Status"></a>
+  <a href="https://hub.docker.com/r/senlabs/flarum/"><img src="https://img.shields.io/docker/pulls/senlabs/flarum.svg?style=flat-square&logo=docker" alt="Docker Pulls"></a>
 </p>
 
 ## About
 
-Docker image for [Flarum](https://flarum.org/), the next-generation forum
+Docker image for [Flarum](https://flarum.org/) 2.0, the next-generation forum
 software that makes online discussion fun.
+
+This is the SEN Labs flavor of [crazy-max/docker-flarum](https://github.com/crazy-max/docker-flarum) (thanks!),
+which is still on Flarum 1.8. It differs in these points:
+
+| | |
+|---|---|
+| Flarum | 2.0.x (`v2.0.2`), with the extensions of the 2.0 skeleton (approval, bbcode, deck, emoji, flags, gdpr, likes, lock, markdown, mentions, messages, nicknames, realtime, statistics, sticky, subscriptions, suspend, tags, ...) |
+| Extra extensions | [`fof/oauth`](https://github.com/FriendsOfFlarum/oauth), [`sen-labs/oauth-authelia`](https://github.com/sen-laboratories/flarum-oauth-authelia) (Authelia OIDC login), `fof/follow-tags`, `fof/links`, `fof/gamification` |
+| Runtime | Alpine 3.24, PHP 8.5, nginx, s6-overlay |
+| Database | MariaDB (recommended 11.8+, tested with 10.11, 11.8 and 13.0) or MySQL; the driver is detected, see `DB_DRIVER` |
+| Realtime | optional websocket daemon as s6 service, see [Realtime](#realtime) |
+
+`fof/links` and `fof/gamification` have no stable 2.0 release yet, so they are installed as release candidate and beta.
 
 > [!TIP] 
 > Want to be notified of new releases? Check out 🔔 [Diun (Docker Image Update Notifier)](https://github.com/crazy-max/diun)
@@ -26,6 +34,7 @@ ___
 * [Environment variables](#environment-variables)
   * [General](#general)
   * [Flarum](#flarum)
+  * [Realtime](#realtime)
   * [Database](#database)
 * [Volumes](#volumes)
 * [Ports](#ports)
@@ -42,8 +51,10 @@ ___
 
 ## Features
 
-* Run as non-root user
+* Flarum 2.0 on PHP 8.5, run as non-root user
 * Multi-platform image
+* Optional [Realtime](#realtime) websocket service
+* Authelia OIDC login through `sen-labs/oauth-authelia`
 * [s6-overlay](https://github.com/just-containers/s6-overlay/) as process supervisor
 * [msmtpd SMTP relay](https://github.com/crazy-max/docker-msmtpd) image to send emails
 * [Traefik](https://github.com/containous/traefik-library-image) as reverse proxy and creation/renewal of Let's Encrypt certificates (see [this template](examples/traefik))
@@ -51,7 +62,7 @@ ___
 ## Build locally
 
 ```shell
-git clone https://github.com/crazy-max/docker-flarum.git
+git clone https://github.com/sen-laboratories/docker-flarum.git
 cd docker-flarum
 
 # Build image and output to docker (default)
@@ -65,13 +76,15 @@ docker buildx bake image-all
 
 | Registry                                                                                          | Image                      |
 |---------------------------------------------------------------------------------------------------|----------------------------|
-| [Docker Hub](https://hub.docker.com/r/crazymax/flarum/)                                           | `crazymax/flarum`          |
-| [GitHub Container Registry](https://github.com/users/crazy-max/packages/container/package/flarum) | `ghcr.io/crazy-max/flarum` |
+| [Docker Hub](https://hub.docker.com/r/senlabs/flarum/)                                            | `senlabs/flarum`           |
+| [GitHub Container Registry](https://github.com/orgs/sen-laboratories/packages/container/package/flarum) | `ghcr.io/sen-laboratories/flarum` |
+
+Tags: `latest` and the Flarum version (e.g. `2.0.2`) from the `main` branch, `edge` for the latest build.
 
 Following platforms for this image are available:
 
 ```
-$ docker buildx imagetools inspect crazymax/flarum --format "{{json .Manifest}}" | \
+$ docker buildx imagetools inspect senlabs/flarum --format "{{json .Manifest}}" | \
   jq -r '.manifests[] | select(.platform.os != null and .platform.os != "unknown") | .platform | "\(.os)/\(.architecture)\(if .variant then "/" + .variant else "" end)"'
 
 linux/amd64
@@ -168,21 +181,29 @@ docker run -d -p 8000:8000 --name flarum \
   -v $(pwd)/data:/data \
   -e "DB_HOST=db" \
   -e "FLARUM_BASE_URL=http://127.0.0.1:8000" \
-  crazymax/flarum:latest
+  senlabs/flarum:latest
 ```
 
 > [!WARNING]
-> `db` must be a running MySQL instance
+> `db` must be a running MariaDB (recommended, 11.8 or later) or MySQL instance. Official `mariadb` images 11 and later
+> have no `mysqld` command anymore, use `mariadbd` if you set a `command`.
 
 ## Upgrade
 
-You can upgrade Flarum automatically through the UI, it works well. But I
-recommend to recreate the container whenever I push an update:
+Recreate the container to upgrade; pending database migrations of Flarum and its extensions run on start:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
+
+Take a backup first (a ZFS snapshot of the `/data` and database volumes, or a `mariadb-dump`), migrations cannot be
+undone by going back to an older image.
+
+Upgrading from Flarum 1.x with this image is not supported, follow the
+[Flarum 2.0 upgrade guide](https://docs.flarum.org/2.x/update) first. Pin the image to a Flarum version (e.g.
+`senlabs/flarum:2.0.2`) to decide yourself when to upgrade. The database driver (`mysql` or `mariadb`) is written to
+`config.php` on every start from the detected server, so a switch between the two needs no manual edit.
 
 ## Notes
 
@@ -258,12 +279,10 @@ declared in our [`compose.yml`](examples/compose/compose.yml):
 
 ## Contributing
 
-Want to contribute? Awesome! The most basic way to show your support is to star
-the project, or to raise issues. You can also support this project by [**becoming a sponsor on GitHub**](https://github.com/sponsors/crazy-max)
-or by making a [PayPal donation](https://www.paypal.me/crazyws) to ensure this
-journey continues indefinitely!
+Issues and pull requests are welcome. The most basic way to show your support is to star the project.
 
-Thanks again for your support, it is much appreciated! :pray:
+This image is based on [crazy-max/docker-flarum](https://github.com/crazy-max/docker-flarum), consider
+[sponsoring](https://github.com/sponsors/crazy-max) the upstream author as well.
 
 ## License
 

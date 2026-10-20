@@ -36,10 +36,10 @@ services:
     restart: always
 
   db:
-    image: mariadb:10
+    image: mariadb:11.8
     container_name: flarum_db
     command:
-      - "mysqld"
+      - "mariadbd"
       - "--character-set-server=utf8mb4"
       - "--collation-server=utf8mb4_unicode_ci"
     volumes:
@@ -62,7 +62,7 @@ services:
     restart: always
 
   flarum:
-    image: crazymax/flarum:latest
+    image: senlabs/flarum:latest
     container_name: flarum
     depends_on:
       - db

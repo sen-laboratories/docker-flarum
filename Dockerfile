@@ -59,20 +59,19 @@ RUN mkdir -p /opt/flarum \
   && curl -sSL https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
   && COMPOSER_CACHE_DIR="/tmp" composer create-project flarum/flarum /opt/flarum \
        --stability=beta --no-install \
-  # the 2.0 skeleton is minimum-stability stable, but fof/links and fof/gamification only have rc/beta releases for 2.0
-  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum minimum-stability beta \
-  && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum prefer-stable true \
   # 2. add SEN Labs repository for the Authelia plugin
+  # (stability stays "stable": fof/links and fof/gamification have no stable 2.0 release yet, so only they are
+  # allowed as rc/beta with @rc/@beta below. Drop the flags once they are released.)
   && COMPOSER_CACHE_DIR="/tmp" composer config --working-dir /opt/flarum repositories.sen-labs \
      vcs https://codeberg.org/senlabs/flarum-oauth-authelia.git \
   && COMPOSER_CACHE_DIR="/tmp" composer require --working-dir /opt/flarum \
        --no-interaction --prefer-dist \
      flarum/core:${FLARUM_VERSION} \
-     fof/oauth:"*" \
+     fof/oauth:"^2.0" \
      sen-labs/oauth-authelia:"*" \
-     fof/follow-tags:"*" \
-     fof/links:"*" \
-     fof/gamification:"*" \
+     fof/follow-tags:"^2.0" \
+     fof/links:"*@rc" \
+     fof/gamification:"*@beta" \
      -W \
   ## check our extension so it does not break the container
   && find /opt/flarum/vendor/sen-labs/ -name '*.php' -exec php -l {} + \

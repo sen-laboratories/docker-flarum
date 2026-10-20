@@ -19,7 +19,7 @@ services:
     restart: always
 
   flarum:
-    image: ${FLARUM_IMAGE:-crazymax/flarum}
+    image: ${FLARUM_IMAGE:-senlabs/flarum}
     container_name: ${FLARUM_CONTAINER:-flarum}
     ports:
       - target: 8000
